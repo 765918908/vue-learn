@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="app">
+        <div>
+            {{name.asdsa}}{{dsf}}
+            <div>{{age}}</div>
+        </div>
+    </div>
+    <script>
+        const bracePattern = /\{\{(.+?)\}\}/g
+        function patternTest(str) {
+            str = str.replace(/\s*/g, '');
+            return bracePattern.test(str)
+        }
+
+        function patternMatch(str) {
+            str = str.replace(/\s*/g, '');
+            return str.match(bracePattern)
+        }
+
+        function Vue(obj) {
+            //存放依赖
+            this.dependDom = []
+            //
+            this.init(obj.el)
+            console.log('dependDom>>', this.dependDom)
+        }
+        Vue.prototype.init = function (el) {
+            //收集依赖
+            let root = document.getElementById(el)
+            this.getDepend(root)
+        }
+        Vue.prototype.getDepend = function (dom) {
+            if (!('length' in dom)) {
+                dom = [dom]
+            }
+            if (dom.length > 0) {
+                for (const iterator of dom) {
+                    if ('childNodes' in iterator && iterator.childNodes.length > 0) {
+                        let has = false
+                        for (const ele of iterator.childNodes) {
+                            if (ele.nodeType == 3 && patternTest(ele.data)) {
+                                has = true
+                                let data = patternMatch(ele.data)
+                                console.log('dataaa', data)
+                            }
+                        }
+                        if (has) {
+                            this.dependDom.push(iterator)
+                            has = false
+                        }
+                        if ('children' in iterator && iterator.children.length > 0) {
+                            this.getDepend(iterator.children)
+                        }
+                    }
+                }
+            }
+        }
+        const vm = new Vue({
+            el: "app",
+            data: {
+                name: 'xiaoyu',
+                msg: 'hello',
+                age: 18
+            }
+        })
+    </script>
+</body>
+
+</html>
