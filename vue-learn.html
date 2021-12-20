@@ -11,34 +11,100 @@
 <body>
     <div id="app">
         <div>
-            {{name.asdsa}}{{dsf}}
+           asdasd {{name}}{{dsf}}sdgg
             <div>{{age}}</div>
+            <p>3s321fd231</p>
+            <p>{{jiji}}</p>
         </div>
     </div>
     <script>
+        //花括号正则匹配
         const bracePattern = /\{\{(.+?)\}\}/g
-        function patternTest(str) {
+        Vue.prototype.patternTest =(str)=> {
             str = str.replace(/\s*/g, '');
-            return bracePattern.test(str)
+           let has =  bracePattern.test(str)
+            return has
         }
 
-        function patternMatch(str) {
+        Vue.prototype.patternMatch = (str)=> {
             str = str.replace(/\s*/g, '');
             return str.match(bracePattern)
         }
 
-        function Vue(obj) {
+        function Vue(source) {
             //存放依赖
-            this.dependDom = []
-            //
-            this.init(obj.el)
+            this.source = source
+            this.data = source.data
+            this.dependDom = new Set()
+            this.init(this.source)
             console.log('dependDom>>', this.dependDom)
         }
-        Vue.prototype.init = function (el) {
+        //初始化
+        Vue.prototype.init = function (source) {
+                    //响应式数据
+                    this.objectReactive(this.data,this)
             //收集依赖
-            let root = document.getElementById(el)
+            let root = document.getElementById(source.el)
             this.getDepend(root)
+    
+            //关联依赖和响应式数据
+            console.log('this.datathis.data',this.data)
+            
         }
+
+        function Dep() {
+            this.dep =  new Set() 
+            this.add = function (data) {
+                this.dep.add(data)
+            }
+            this.notify = function(){
+                for (const i of this.dep) {
+        debugger
+                    i.update()
+                }
+            }
+        }
+
+    Vue.prototype.auto=function (key) {
+
+        function update(key) {
+            debugger
+            let dom =  window.target
+            console.log('dom>>>',dom)
+            dom.innerText = dom.innerText.replace(bracePattern,(e)=>{
+                console.log('eeee22',e)
+                return this.data[key]
+            })
+        }
+        return {update:update}
+    }
+
+        window.target = null
+        //数据响应式
+        Vue.prototype.objectReactive = function (data,_this) {
+            Object.keys(data).forEach(key => {
+                let val = data[key]
+                const depObj = new Dep()
+                Object.defineProperty(data,key,{
+                    get(){
+                        console.log('get>',key)
+                        if(window.target){
+                            depObj.add(_this.auto(key))
+                        }
+                        return val
+                    },
+                    set(newVal){
+                        if(newVal==val)return
+                        depObj.notify()
+                        val = newVal
+                    }
+                })
+            })
+        }
+
+
+
+        //收集节点依赖
         Vue.prototype.getDepend = function (dom) {
             if (!('length' in dom)) {
                 dom = [dom]
@@ -48,14 +114,30 @@
                     if ('childNodes' in iterator && iterator.childNodes.length > 0) {
                         let has = false
                         for (const ele of iterator.childNodes) {
-                            if (ele.nodeType == 3 && patternTest(ele.data)) {
-                                has = true
-                                let data = patternMatch(ele.data)
-                                console.log('dataaa', data)
+                            if (ele.nodeType == 3 && this.patternTest(ele.data)) {
+                                let data = this.patternMatch(ele.data)
+                                let newData = data.map(e => {
+                                   let item =  e.replace("{{",'').replace("}}","")
+                                    return item
+                                })
+                              let t =  newData.some(e => {
+                                   if(e in this.data) {
+                                       window.target = iterator
+                                      let res =  this.data[e]
+                                       window.target = null
+                                       return true
+                                   }else {
+                                       return false
+                                   }
+                                })
+                                if(t){
+                                    has = true
+                                }
+                                // Object.keys(this.source.data).some(key => )
                             }
                         }
                         if (has) {
-                            this.dependDom.push(iterator)
+                            this.dependDom.add(iterator)
                             has = false
                         }
                         if ('children' in iterator && iterator.children.length > 0) {
@@ -65,6 +147,8 @@
                 }
             }
         }
+        
+
         const vm = new Vue({
             el: "app",
             data: {
@@ -73,6 +157,7 @@
                 age: 18
             }
         })
+        window.vm = vm
     </script>
 </body>
 
